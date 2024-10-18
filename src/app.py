@@ -1,6 +1,7 @@
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from services.playlist_manager import PlaylistManager
+from services.spotify_operations.user_info_viewer import UserInfoViewer
 from music_chart_scraper_config import MUSIC_CHART_SCRAPER_CONFIG
 
 # Set up logging
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 playlist_manager = PlaylistManager()
+user_info_viewer = UserInfoViewer()
 
 def create_playlist_handler(chart_type):
     try:
@@ -31,6 +33,21 @@ def create_billboard_hot_100_playlist():
 @app.route('/create/playlist/billboard_decade_end_hot_100', methods=['POST'])
 def create_billboard_decade_end_hot_100_playlist():
     return create_playlist_handler("billboard_decade_end_hot_100")
+
+@app.route('/user/info', methods=['GET'])
+def get_user_info():
+    try:
+        logger.info("Attempting to fetch user information")
+        user_info = user_info_viewer.get_user_info()
+        if user_info:
+            logger.info("Successfully fetched user information")
+            return jsonify(user_info), 200
+        else:
+            logger.warning("No user information available")
+            return jsonify({"error": "No user information available"}), 404
+    except Exception as e:
+        logger.error(f"Error fetching user information: {str(e)}")
+        return jsonify({"error": "Failed to fetch user information"}), 500
 
 @app.errorhandler(404)
 def not_found(error):
